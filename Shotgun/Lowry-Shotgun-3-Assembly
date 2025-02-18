@@ -1,0 +1,90 @@
+# Assembly protocol for 12 metagenomic samples
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable
+t=32
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** ASSEMBLY ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+echo "The sample trimmed files are stored in ${path_S_trim}"
+
+###################################################################################
+################### SLURM singularity file path for code below: ###################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-assembly.sif
+###################################################################################
+
+############
+# ASSEMBLY #
+############
+
+interleaved=${path_S}S${S}_interleaved.fastq.gz
+
+# De-interleave rqcfilter2 file into Read 1 and Read 2 files before assembly.
+reformat.sh in=${interleaved} out1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz out2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+# Set de-interleaved rqcfilter2 Read 1 and Read 2 files as variables.
+deint_R1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz
+deint_R2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+echo " ********** Assemble Sample ${S} with megahit ********** "
+
+# Activate megahit
+conda activate megahit
+
+# Print megahit version.
+megahit -v
+
+# Assemble trimmed reads into contigs.
+megahit -t ${t} -1 ${deint_R1} \
+        -2 ${deint_R2} \
+        -o ${path_S}assembled \
+        --presets meta-large
+
+# Deactivate conda
+conda deactivate
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+echo " ********** Get assembly statistics for Sample ${S} with quast ********** "
+
+# Print quast.py version.
+quast.py -v
+
+# Get assembly statistics with quast.
+quast.py ${path_S_assembled}final.contigs.fa \
+        -o ${path_S_assembled}quast_results --threads ${t}
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
