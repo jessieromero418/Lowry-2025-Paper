@@ -1,0 +1,73 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (blast for SDIMOs and filtering)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+#################################################
+# BLAST ALL GOFF AND HUG PROTEINS - ALL SAMPLES #
+#################################################
+
+# First run prodigal on all samples to use blast for loop with all samples.
+
+echo " ********** BLAST for Goff and Hug SDIMOs in protein space at evalue 1e-50 with blastp ********** "
+
+# Print blastp version.
+blastp -version
+
+# For loop to blast Goff and Hug proteins against sample proteins. sample variable represents sample
+# proteins, set for 1-12 to represent all 12 sample proteins.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been blasted or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** BLAST Sample ${sample} for Goff and Hug SDIMOs ********** "
+
+echo " ********** Set the proteins.faa prodigal file as blastp database file ********** "
+
+# Set the proteins.faa prodigal file as blastp database file.
+makeblastdb -dbtype prot -in /home/romejess/may2022_metagenomics/S${sample}/prodigal/S${sample}_proteins.faa
+
+echo " ********** database file: /home/romejess/may2022_metagenomics/S${sample}/prodigal/S${sample}_proteins.faa ********** "
+
+# Make directory for blastp output files.
+mkdir /home/romejess/may2022_metagenomics/S${sample}/blastp/
+
+# Set path to blastp output directory created in for loop as a variable
+path_S_blastp=/home/romejess/may2022_metagenomics/S${sample}/blastp/
+
+echo " ********** blastp directory: ${path_S_blastp} ********** "
+
+echo " ********** BLASTP ********** "
+
+# Search for ALL Goff and Hug proteins from query file in the proteins.faa database file.
+# Use evalue of 1e-50 (evalue from Goff and Hug). Add query coverage information into blastp output file
+# with -outfmt flag.
+blastp -db /home/romejess/may2022_metagenomics/S${sample}/prodigal/S${sample}_proteins.faa \
+       -query ${path}query_Goff_Hug.faa \
+       -out ${path_S_blastp}S${sample}_blastp_output.txt \
+       -outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qcovs" \
+       -evalue 1e-50 \
+       -num_threads ${t}
+
+done
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
