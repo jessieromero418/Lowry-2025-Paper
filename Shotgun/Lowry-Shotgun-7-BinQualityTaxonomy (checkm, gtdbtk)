@@ -1,0 +1,116 @@
+# Bin quality and taxonomy protocol for 12 metagenomic samples
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable. 64 recommended for mapping.
+t=64
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** BINNING QUALITY AND TAXONOMY ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+# Set de-interleaved rqcfilter2 Read 1 and Read 2 files as variables.
+deint_R1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz
+deint_R2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+# Set path to mapping output directory as a variable
+path_S_map=${path_S}mapped/
+
+# Set path to calmd output directory as a variable
+path_S_calmd=${path_S}calmd/
+
+# Set path to jgi_summarize_bam_contig_depths output directory as a variable
+path_S_jgi=${path_S}jgi/
+
+# Set path to binning output directory as a variable
+path_S_bins=${path_S}binning/
+
+#####################################################################################
+################### SLURM singularity file path for code below: #####################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-bin-qual-tax.sif#
+#####################################################################################
+
+###############
+# BIN QUALITY #
+###############
+
+# Activate checkm
+conda activate checkm
+
+echo " ********** Estimate Sample ${S} Bins Quality with checkm ********** "
+
+# Print checkm help message to print version.
+checkm -h
+
+# Estimate bin quality
+# Note: /scratch/romejess directory wasn't recognized. Removed --tmpdir
+# Example binning subdirectory created by runMetaBat.sh: final.contigs.fa.metabat-bins64-20221203_125614
+checkm lineage_wf -t ${t} -x fa \
+        ${path_S_bins}final.contigs.fa.metabat-bins* \
+        ${path_S}checkm --tab_table
+
+# Deactivate conda
+conda deactivate
+
+# Set path to checkm output directory as a variable
+path_S_checkm=${path_S}checkm
+
+################
+# BIN TAXONOMY #
+################
+
+# Activate gtdbtk
+conda activate gtdbtk-2.1.1 #previous version: 2.1.0
+
+# Set path to gtdbtk reference data as a variable (leave uncommented when running gtdbtk)
+export GTDBTK_DATA_PATH="/storage/biology/projects/miller-lowry/gtdbtk-db/release207_v2/"
+echo $GTDBTK_DATA_PATH
+
+echo " ********** Estimate Sample ${S} Bins Taxonomy with gtdbtk ********** "
+
+# Print gtdbtk help message to print version.
+gtdbtk -h
+
+# Assign taxonomy to bins
+gtdbtk classify_wf --genome_dir ${path_S_bins}final.contigs.fa.metabat-bins* \
+       --out_dir ${path_S}gtdbtk --extension fa --cpus ${t}
+
+# Deactivate conda
+conda deactivate
+
+# Set path to gtdbtk output directory as a variable
+path_S_gtdbtk=${path_S}gtdbtk
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
