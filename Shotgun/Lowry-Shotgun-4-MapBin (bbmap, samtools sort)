@@ -1,0 +1,116 @@
+# Mapping and binning protocol for 12 metagenomic samples, Part 1 - bbmap, samtools sort
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable. 64 recommended for mapping.
+t=64
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** MAPPING AND BINNING ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+# Set de-interleaved rqcfilter2 Read 1 and Read 2 files as variables.
+deint_R1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz
+deint_R2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+###################################################################################
+################### SLURM singularity file path for code below: ###################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-map-bin.sif
+###################################################################################
+
+############################################################
+# MAPPING ALL 12 SAMPLES' READS TO ALL 12 SAMPLES' CONTIGS #
+############################################################
+
+# Make directory to store sample mapping output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/mapped/
+
+# Set path to mapping output directory as a variable
+path_S_map=${path_S}mapped/
+
+echo "********** Map Sample ${S} Reads to All Sample Contigs **********"
+
+# For loop to map Sample reads to Sample 1-12's contigs. contigs variable represents sample
+# contigs being mapped to as the reference, set for 1-12 to represent all 12 samples.
+# Note: /mapped/ directory will store unsorted bam files for sample reads vs. all sample contigs (i.e., contigs increases)
+for contigs in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been mapped or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo "********** Sample ${S} vs. Sample ${contigs} Contigs **********"
+
+echo "********** Map Sample ${S} Trimmed Reads to Sample ${contigs} Contigs **********"
+
+# Map Sample Read 1 and Read 2 (reads) to Sample 1-12's assembly contigs (reference)
+bbmap.sh in=${deint_R1} in2=${deint_R2} \
+       ref=${path}S${contigs}/assembled/final.contigs.fa \
+       ambiguous=random \
+       out=${path_S_map}S${S}.trimmed_vs_S${contigs}.contigs.bam \
+       covstats=${path_S_map}S${S}.trimmed_vs_S${contigs}.contigs.covstats.txt
+
+done
+
+######################################################
+# SORT MAPPED READS AND REMOVE UNSORTED MAPPED READS #
+######################################################
+
+# For loop to sort all reads mapped to sample's contigs and calculate contig coverage with mapped reads.
+# reads variable represents reads from Samples 1-12 that were mapped against sample.
+for reads in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample as needed or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Sort Sample ${reads} Mapped Reads vs. Sample ${S} Contigs with samtools sort ********** "
+
+# Sort reads that were mapped to assembly contigs. Set -T flag as scratch directory for tmp files and to avoid exceeding disk quota.
+samtools sort --threads ${t} --write-index --output-fmt bam \
+        -o ${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.sorted.bam \
+        ${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.bam \
+        -T /scratch/romejess/S${reads}.trimmed_vs_S${S}.contigs.TMP \
+        -m 4G
+
+echo " ********** Remove unsorted bam file if sorted bam file has no errors ********** "
+
+# Check that sorting worked. If it worked (no errors), remove the unsorted bam file.
+retVal=$?
+if [ $retVal -ne 0 ]; then
+    echo "Error"
+    exit $retVal # if samtools sort fails, script will die
+fi
+#cp ${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.bam ${path}S${reads} # uncomment if want to test retVal without removing unsorted bam file
+echo " ********** Removing unsorted bam file -- ${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.bam -- ${d} ********** "
+rm ${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.bam
+
+done
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
