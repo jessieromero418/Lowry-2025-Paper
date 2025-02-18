@@ -1,0 +1,104 @@
+# Trimmed reads quality protocol for 12 metagenomic samples
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable
+t=32
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes. Comment after all samples
+# have been processed.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** TRIMMED READS QUALITY WITH FASTQC, FASTQP, MULTIQC ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+#path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+echo " The sample trimmed files are stored in ${path_S_trim} "
+
+# Set rqcfilter2 output directory as a variable.
+rqcfilter2=${path_S_trim}rqcfilter2_out/
+
+###################################################################################
+################### SLURM singularity file path for code below: ###################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-assembly.sif
+###################################################################################
+
+##########
+# FASTQC #
+##########
+
+echo " ********** Trimmed reads quality for Sample ${S} with fastqc ********** "
+
+# Activate fastqc.
+conda activate fastqc
+
+# Print fastqc version.
+fastqc -v
+
+# Make a directory for all sample fastqc output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/fastqc_out
+
+# Set fastqc output directory as a variable.
+fastqc=${path}fastqc_out/
+
+# fastqc on reads post-trimming with rqcfilter2.sh
+fastqc ${rqcfilter2}S${S}_interleaved.anqdpt.fastq.gz -o ${fastqc} -t ${t} -f fastq
+
+# Deactivate fastqc.
+conda deactivate
+
+##########
+# FASTQP #
+##########
+
+echo " ********** Trimmed reads quality for Sample ${S} with fastqp ********** "
+
+# Print fastqp version.
+fastqp -v
+
+# Make sample fastqp output directory.
+mkdir ${path_S}fastqp_out
+
+# Set sample fastqp output directory as a variable.
+fastqp=${path_S}fastqp_out/
+
+# fastqp on reads post-trimming with rqcfilter2.sh
+fastqp -n 10000 ${rqcfilter2}S${S}_interleaved.anqdpt.fastq.gz -o ${fastqp}S${S}_interleaved.anqdpt.fastqp.out
+
+###########
+# MULTIQC #
+###########
+
+echo " ********** Aggregate trimmed reads quality for all samples with multiqc ********** "
+
+# Print multiqc version.
+multiqc -v
+
+# Aggregate fastqc results with multiqc (uncomment after all samples processed with fastqc, fastqp).
+multiqc ${fastqc} -o ${fastqc}multiqc_results
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
