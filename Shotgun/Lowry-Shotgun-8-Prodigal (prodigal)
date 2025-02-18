@@ -1,0 +1,64 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (blast for SDIMOs and filtering)
+# Transfer assemblies from alderaan math cluster to miller-lab first (performed on miller-lab).
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/home/romejess/may2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+################################
+# GENE ANNOTATION - ONE SAMPLE #
+################################
+
+# Make directory to store sample prodigal output files
+mkdir /home/romejess/may2022_metagenomics/S${S}/prodigal/
+
+# Set path to a sample's prodigal output directory as a variable.
+path_S_prodigal=/home/romejess/may2022_metagenomics/S${S}/prodigal/
+
+echo " ********** Annotate Sample ${S} Genes with prodigal ********** "
+
+# Print prodigal version.
+prodigal -v
+
+# Identify gene sequences
+prodigal -i ${path_S_assembled}final.contigs.fa \
+       -o ${path_S_prodigal}S${S}_genes.gbk \
+       -d ${path_S_prodigal}S${S}_genes.fna \
+       -a ${path_S_prodigal}S${S}_proteins.faa \
+       -p meta \
+       -q > /dev/null
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
