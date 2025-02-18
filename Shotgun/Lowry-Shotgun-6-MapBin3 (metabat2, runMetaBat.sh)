@@ -1,0 +1,93 @@
+# Mapping and binning protocol for 12 metagenomic samples, Part 3 - binning
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable. 64 recommended for mapping.
+t=64
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** MAPPING AND BINNING ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+# Set de-interleaved rqcfilter2 Read 1 and Read 2 files as variables.
+deint_R1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz
+deint_R2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+# Set path to mapping output directory as a variable
+path_S_map=${path_S}mapped/
+
+# Set path to calmd output directory as a variable
+path_S_calmd=${path_S}calmd/
+
+# Set path to jgi_summarize_bam_contig_depths output directory as a variable
+path_S_jgi=${path_S}jgi/
+
+##########################################################################################
+################### SLURM singularity file path for code below: ##########################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-map-bin.2022-03-14.sif
+##########################################################################################
+
+##############################################################
+# BINNING WITH ALL SAMPLE READS MAPPED TO ALL SAMPLE CONTIGS #
+##############################################################
+
+# Make a directory to store sample binning output files created with sample reads mapped to
+# all sample contigs.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/binning/
+
+# Set path to binning output directory as a variable
+path_S_bins=${path_S}binning/
+
+echo " ********** Bin All Sample Reads Mapped Against Sample ${S} Contigs with runMetaBat.sh ********** "
+
+# Print runMetaBat.sh help message to print version.
+runMetaBat.sh -h
+
+# Print metabat2 help message to print version.
+metabat2 -h
+
+# cd into binning directory to direct binning output files here.
+cd /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/binning/
+
+# Print working directory to confirm cd'd into binning directory.
+echo " ********** print working directory (where bins will be stored) ********** "
+pwd
+
+# Bin all reads mapped against sample contigs to generate draft genomes.
+runMetaBat.sh -t ${t} ${path}S${S}/assembled/final.contigs.fa \
+        ${path_S_calmd}S*.trimmed_vs_S${S}.contigs.sorted.trunc.calmd.bam
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
