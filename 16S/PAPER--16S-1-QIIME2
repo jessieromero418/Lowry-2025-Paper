@@ -1,0 +1,312 @@
+############################################################################## 
+################# PRE-PROCESSING 16S rRNA DATA WITH QIIME2 ################### 
+############################################################################## 
+
+####################### 
+# QIIME2 INSTALLATION # 
+####################### 
+
+# Conda install QIIME2 (Version 2023.5) 
+conda activate 
+wget https://data.qiime2.org/distro/core/qiime2-2023.5-py38-linux-conda.yml 
+conda env create -n qiime2-2023.5 --file qiime2-2023.5-py38-linux-conda.yml 
+
+# Conda activate QIIME2. 
+conda activate qiime2-2023.5 
+
+# Check that QIIME2 installed correctly by printing help message. 
+qiime --help 
+
+# To activate conda within a bash script, remove ‘#’ from next line and add at the start of the script: 
+#source ~/miniconda3/etc/profile.d/conda.sh 
+
+# Set number of cores/threads as a variable 
+
+t=48 
+
+#################### 
+
+echo " ********** 16S ANALYSIS ********** " 
+
+# Set path to raw 16S data directory as a variable. 
+CM_path=/home/chris/Lowry/2022_Fall_16S_GB/ 
+
+echo " The 16S data is stored in ${CM_path} " 
+
+# Make a directory for all QIIME2 files. 
+mkdir /home/romejess/fall2022_16S/ 
+
+# Set path to above directory as a variable. 
+path=/home/romejess/fall2022_16S/ 
+
+echo " The QIIME2 files are stored in ${path} " 
+
+#################### 
+
+# Print QIIME2 version. 
+qiime --version 
+
+############### 
+# IMPORT DATA # 
+############### 
+
+#################### 
+
+# NOT PERFORMED ON THE COMMAND LINE: First, the 30 samples pertaining to the four studied timepoints were copied from the original manifest csv file of all samples into a new file (original manifest file name: 2022_Fall_16S_GB_manifest.csv; new manifest file name with 30 samples: 2022_Fall_16S_GB_JR_samples_manifest.csv). The new manifest file was transferred to the server (under the ${path} directory: /home/romejess/fall2022_16S/) for analysis. 
+
+#################### 
+
+# Import data as PairedEndFastqManifestPhred33. 
+echo " ********** Import samples from GB Fall 2022 data as PairedEndFastqManifestPhred33 ********** " 
+
+echo " ********** tools import ********** " 
+
+qiime tools import 
+       --type 'SampleData[PairedEndSequencesWithQuality]' 
+       --input-path ${path}2022_Fall_16S_GB_JR_samples_manifest.csv 
+       --output-path ${path}2022_Fall_16S_GB_JR_samples_demux.qza 
+       --input-format PairedEndFastqManifestPhred33
+
+# demux summarize 
+
+echo " ********** demux summarize ********** " 
+
+qiime demux summarize 
+       --i-data ${path}2022_Fall_16S_GB_JR_samples_demux.qza 
+       --o-visualization ${path}2022_Fall_16S_GB_JR_samples_demux.qzv
+
+# The output demux.qzv file was downloaded from the server, then visualized in QIIME2 View. Results in QIIME2 View were used to select parameters for denoising (next step). 
+
+############# 
+# DENOISING # 
+############# 
+
+# Make a subdirectory for QIIME2 analyses (name based on QIIME2 version). 
+mkdir /home/romejess/fall2022_16S/v2023.5/ 
+
+# Set path to above directory as a variable.
+path_v=/home/romejess/fall2022_16S/v2023.5/
+
+echo " ********** Denoising based on output demux.qzv results in QIIME2 View ********** " 
+
+# Denoise 
+echo " ********** dada2 (strict) ********** " 
+qiime dada2 denoise-paired 
+       --i-demultiplexed-seqs ${path}2022_Fall_16S_GB_JR_samples_demux.qza 
+       --p-trim-left-f 0 
+       --p-trim-left-r 0 
+       --p-trunc-len-f 250 
+       --p-trunc-len-r 60 
+       --p-max-ee-f 2 
+       --p-max-ee-r 2 
+       --p-trunc-q 2 
+       --output-dir ${path_v}dada2_table_strict 
+       --p-n-threads ${t}
+
+# Make a directory to store output taxonomy files. 
+mkdir /home/romejess/fall2022_16S/v2023.5/tax/ 
+
+# Set above directory as a variable. 
+path_tax=/home/romejess/fall2022_16S/v2023.5/tax/ 
+
+# Assign taxonomy to DADA2 representative sequences.
+echo " ********** feature-classifier classify-sklearn ********** " 
+qiime feature-classifier classify-sklearn 
+       --i-classifier ${CM_path}qiime2/silva-138-99-515-806-nb-classifier.qza 
+       --i-reads ${path_v}dada2_table_strict/representative_sequences.qza    
+       --o-classification ${path_tax}JR_taxonomy-silva-138-99-515-806.qza 
+       --p-n-jobs ${t}
+
+######################################
+# BLAST 16S REPRESENTATIVE SEQUENCES #
+######################################
+
+# Extract representative sequences from DADA2 output in nucleotide space/FASTA format (make a directory to store these)
+mkdir /home/romejess/fall2022_16S/v2023.5/extracted-rep-seqs 
+qiime tools extract --input-path ${path_v}dada2_table_strict/representative_sequences.qza --output-path ${path_v}extracted-rep-seqs
+
+# BLAST nr the representative sequences FASTA file (dna-sequences.fasta) against a nucleotide prokaryote and virus database on the server. Set -num_alignments to 3 to get the top 3 hits (set to 1 if only want the top hit). 
+export BLASTDB=/data/ncbi/blastdb
+
+blastn -db nt_prok_viruses \
+        -query ${path_v}extracted-rep-seqs/0998704b-ab24-4306-b9a3-eb2577362fa9/data/dna-sequences.fasta \
+        -num_threads ${t} \
+        -evalue 1e-5 \
+        -outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qcovs sgi sacc staxids sscinames scomnames stitle" \
+        -num_alignments 3 \
+        -out ${path_v}extracted_rep_seqs_nt_pro_vir_out.txt
+
+##################################
+# FILTERING - 5300 MINIMUM READS #
+##################################
+
+# Make a directory to store filtered files (name based on selected minimum number of reads for filtering).
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300
+
+# Filter out samples with less than 5300 reads from original DADA2 output feature table.
+qiime feature-table filter-samples --i-table ${path_v}dada2_table_strict/table.qza --p-min-frequency 5300 --o-filtered-table ${path_v}min5300/table_min5300.qza 
+
+##################################
+# ASV TABLE - 5300 MINIMUM READS #
+##################################
+
+# Make feature-table.biom from reads filtered DADA2 output
+qiime tools export --input-path ${path_v}min5300/table_min5300.qza --output-path ${path_v}min5300/ 
+
+# Convert feature-table.biom to tsv format
+biom convert -i ${path_v}min5300/feature-table.biom -o ${path_v}min5300/feature-table.tsv --to-tsv 
+
+# Look at first lines of feature table in tsv format (check that file is readable)
+biom head -i ${path_v}min5300/feature-table.tsv
+
+# Now make a BIOM table with taxonomy information. Export feature-table.biom again from reads filtered DADA2 output, save in new /exported/ directory
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300/exported
+qiime tools export --input-path ${path_v}min5300/table_min5300.qza --output-path ${path_v}min5300/exported
+
+# Export taxonomy.tsv from pre-filtered data, save in new /exported/ directory
+qiime tools export --input-path ${path_tax}JR_taxonomy-silva-138-99-515-806.qza --output-path ${path_v}min5300/exported 
+
+# Make copy of taxonomy table first, save copy as biom-taxonomy.tsv, before modifying header name for use with BIOM
+cp ${path_v}min5300/exported/taxonomy.tsv ${path_v}min5300/biom-taxonomy.tsv 
+
+# Change biom-taxonomy.tsv headers (“Feature ID      Taxon   Confidence”) to #OTUID  taxonomy    confidence” with nano biom-taxonomy.tsv
+
+# Add taxonomy to feature-table.biom (make table-with-taxonomy.biom) 
+biom add-metadata -i ${path_v}min5300/feature-table.biom -o ${path_v}min5300/table-with-taxonomy.biom --observation-metadata-fp ${path_v}min5300/biom-taxonomy.tsv --sc-separated taxonomy 
+
+# Convert table-with-taxonomy.biom to txt (make a readable ASV table)
+biom convert -i ${path_v}min5300/table-with-taxonomy.biom -o ${path_v}min5300/table-with-taxonomy.txt --to-tsv --header-key taxonomy
+
+
+#################### 
+
+# NOT PERFORMED ON THE COMMAND LINE: Looked at readable ASV table (table-with-taxonomy.txt) in Excel. Added BLAST nr results for pre-filtered representative sequences to table-with-taxonomy.txt by matching ASVs. Identified a list of unwanted ASVs to filter out later (e.g., chloroplasts, mitochondria, unassigned ASVs, ASVs only identified to the domain level with no BLAST hit).
+
+#################### 
+
+#############################
+# FILTERING - UNWANTED ASVs #
+#############################
+
+# Make a directory to store reads and ASV-filtered files (name based on selected minimum number of reads and ASV filtering).
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned 
+
+# cd into new directory
+cd /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned 
+
+# Make a file named “ASVs_to_remove.tsv”. Copy/paste list of ASVs to remove (e.g., chloroplasts, mitochondria, unassigned ASVs, ASVs only identified to the domain level with no BLAST hit). Make ASV list header name “id” with nano ASVs_to_remove.tsv
+
+# FILE FOR R (1 of 4) → Feature table (table_min5300-noChlorMitoUnassigned.qza in output directory) will be used in R analysis. Download from server onto desktop to transfer into R. Use loadFromQIIME2 command from mia package to transfer into R. List feature table desktop file path after ‘featureTableFile’ in loadFromQIIME2 command.
+
+# Filter out ASVs to remove from reads-filtered DADA2 feature table. Create a new, filtered feature table.
+qiime feature-table filter-features --i-table ${path_v}min5300/table_min5300.qza --m-metadata-file ${path_v}min5300-noChlorMitoUnassigned/ASVs_to_remove.tsv --p-exclude-ids True --o-filtered-table ${path_v}min5300-noChlorMitoUnassigned/table_min5300-noChlorMitoUnassigned.qza
+
+#####################################################################
+# START ASV TABLE - 5300 MINIMUM READS, UNWANTED ASV-FILTERED DATA #
+#####################################################################
+
+# Start forming updated ASV table from 5300 minimum reads, unwanted ASVs-filtered data. To finish creating the ASV table, will need to create a taxonomy file in a later step.
+
+# Make feature-table.biom
+qiime tools export --input-path ${path_v}min5300-noChlorMitoUnassigned/table_min5300-noChlorMitoUnassigned.qza --output-path ${path_v}min5300-noChlorMitoUnassigned/ 
+
+# Convert feature-table.biom to tsv
+biom convert -i ${path_v}min5300-noChlorMitoUnassigned/feature-table.biom -o ${path_v}min5300-noChlorMitoUnassigned/feature-table.tsv --to-tsv 
+
+# Can check that all unwanted ASVs were filtered out by seeing number of lines in feature-table.tsv. Number of lines should correspond to number of expected ASVs after filtering.
+wc -l ${path_v}min5300-noChlorMitoUnassigned/feature-table.tsv
+
+#################### 
+
+# NOT PERFORMED ON THE COMMAND LINE: Updating the metadata file for downstream analysis. Download original metadata file (/home/chris/Lowry/2022_Fall_16S_GB/qiime2/2022_Fall_16S_GB_metadata.tsv) and edit in Excel. Edits: 1) Remove any samples that were not retained in table_min5300-noChlorMitoUnassigned.qza feature table (can see filtered sample list if run “head ${path_v}min5300-noChlorMitoUnassigned/feature-table.tsv” on command line), 2) Add a “categorical” data column labeled “support_media_number” listing “N1”, “N2” to help distinguish between sample “noodle” numbers. Download edited metadata file, convert to tsv, upload to /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/. File name: JR_samples_min5300-noChlorMitoUnassigned_metadata.tsv
+
+# FILE FOR R (2 of 4) → Metadata file (JR_samples_min5300-noChlorMitoUnassigned_metadata.tsv) will be used in R analysis. Download onto desktop to transfer into R. Use loadFromQIIME2 command from mia package to transfer into R. List metadata desktop file path after ‘sampleMetaFile’ in loadFromQIIME2 command.
+
+#################### 
+
+echo " ********** metadata tabulate ********** "
+qiime metadata tabulate --m-input-file JR_samples_min5300-noChlorMitoUnassigned_metadata.tsv --o-visualization JR_samples_min5300-noChlorMitoUnassigned_metadata.qzv
+
+echo " ********** feature-table summarize ********** " 
+qiime feature-table summarize --i-table table_min5300-noChlorMitoUnassigned.qza --o-visualization JR_samples_min5300-noChlorMitoUnassigned_table.qzv --m-sample-metadata-file JR_samples_min5300-noChlorMitoUnassigned_metadata.tsv
+
+###############################################################################
+# REPRESENTATIVE SEQUENCES - 5300 MINIMUM READS, UNWANTED ASV-FILTERED DATA #
+###############################################################################
+
+# Make a list of ASVs in feature-table.tsv. Take column listing ASVs and save this as a new file.
+cut -f1 ${path_v}min5300-noChlorMitoUnassigned/feature-table.tsv > ${path_v}min5300-noChlorMitoUnassigned/ASVs_min5300-noChlorMitoUnassigned.tsv
+
+# Make ASV list header name “id” with: nano ASVs_min5300-noChlorMitoUnassigned.tsv
+
+# Use ASVs_min5300-noChlorMitoUnassigned.tsv to filter ASVs from the prefiltered DADA2 representative sequences into a new, filtered qza file
+qiime feature-table filter-seqs --i-data ${path_v}dada2_table_strict/representative_sequences.qza --m-metadata-file ${path_v}min5300-noChlorMitoUnassigned/ASVs_min5300-noChlorMitoUnassigned.tsv --o-filtered-data ${path_v}min5300-noChlorMitoUnassigned/rep_seqs_min5300-noChlorMitoUnassigned.qza
+
+# Extract representative sequences from new, filtered qza file in nucleotide space/FASTA format (make a directory to store these)
+mkdir ${path_v}min5300-noChlorMitoUnassigned/extracted-rep-seqs
+qiime tools extract --input-path ${path_v}min5300-noChlorMitoUnassigned/rep_seqs_min5300-noChlorMitoUnassigned.qza --output-path ${path_v}min5300-noChlorMitoUnassigned/extracted-rep-seqs
+
+# Can check the number of sequences in the new, filtered representative sequences FASTA file. Number of “>” symbols should correspond to number of expected ASVs after filtering.
+grep ">" ${path_v}min5300-noChlorMitoUnassigned/extracted-rep-seqs/257a36e8-08a1-4b29-b735-e208de75c825/data/dna-sequences.fasta | wc -l
+
+############# 
+# TAXONOMY # 
+############# 
+
+# Make a directory to store output taxonomy files. 
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/tax/ 
+
+# Set above directory as a variable. 
+path_tax_filtered=/home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/tax/ 
+
+# Assign taxonomy to dada2 (strict) representative sequences 
+# FILE FOR R (3 of 4) → Taxonomy table (min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qza in output directory) will be used in R analysis. Download from server onto desktop to transfer into R. Use loadFromQIIME2 command from mia package to transfer into R. List taxonomy table desktop file path after ‘taxonomyTableFile’ in loadFromQIIME2 command.
+
+echo " ********** feature-classifier classify-sklearn ********** " 
+qiime feature-classifier classify-sklearn --i-classifier ${CM_path}qiime2/silva-138-99-515-806-nb-classifier.qza --i-reads ${path_v}min5300-noChlorMitoUnassigned/rep_seqs_min5300-noChlorMitoUnassigned.qza --o-classification ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qza --p-n-jobs ${t}
+
+# Visualize taxonomy table in QIIME2 View. 
+echo " ********** metadata tabulate, taxonomy table ********** " 
+qiime metadata tabulate --m-input-file ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qza --o-visualization ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qzv
+
+# Visualize preliminary taxonomy bar plot in QIIME2 View (will edit plot in R)
+echo " ********** taxa barplot ********** " 
+qiime taxa barplot --i-table ${path_v}min5300-noChlorMitoUnassigned/table_min5300-noChlorMitoUnassigned.qza --i-taxonomy ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qza --m-metadata-file ${path_v}min5300-noChlorMitoUnassigned/JR_samples_min5300-noChlorMitoUnassigned_metadata.tsv --o-visualization ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-bar-plots-gg-13-8-99-515-806.qzv
+
+##################### 
+# PHYLOGENETIC TREE # 
+##################### 
+
+# Make a directory to store output phylogenetic tree files.
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/tree/
+
+# Set above directory as a variable.
+path_tree_filtered=/home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/tree/
+
+# Create a phylogeny tree for visualization in iTOL 
+# FILE FOR R (4 of 4) → Rooted tree (rooted-tree_min5300-noChlorMitoUnassigned.qza in output directory) will be used in R analysis. Download from server onto desktop to transfer into R. Use loadFromQIIME2 command from mia package to transfer into R. List taxonomy table desktop file path after ‘phyTreeFile’ in loadFromQIIME2 command.
+
+echo " ********** phylogeny align-to-tree-mafft-fasttree ********** "
+qiime phylogeny align-to-tree-mafft-fasttree --i-sequences ${path_v}min5300-noChlorMitoUnassigned/rep_seqs_min5300-noChlorMitoUnassigned.qza --o-alignment ${path_tree_filtered}aligned-rep-seqs.qza --o-masked-alignment ${path_tree}masked-aligned-rep-seqs.qza --o-tree ${path_tree_filtered}unrooted-tree.qza --o-rooted-tree ${path_tree_filtered}rooted-tree_min5300-noChlorMitoUnassigned.qza --p-n-threads ${t}
+
+#########################################################################
+# COMPLETE ASV TABLE - 5300 MINIMUM READS, UNWANTED ASV-FILTERED DATA #
+#########################################################################
+
+# Now make a BIOM table with taxonomy information. Export feature-table.biom from reads and ASV-filtered DADA2 output, save in new /exported/ directory
+mkdir /home/romejess/fall2022_16S/v2023.5/min5300-noChlorMitoUnassigned/exported
+qiime tools export --input-path ${path_v}min5300-noChlorMitoUnassigned/table_min5300-noChlorMitoUnassigned.qza --output-path ${path_v}min5300-noChlorMitoUnassigned/exported
+
+# Export taxonomy.tsv from reads and ASV-filtered data, save in new /exported/ directory
+qiime tools export --input-path ${path_tax_filtered}min5300-noChlorMitoUnassigned_tax-silva-138-99-515-806.qza --output-path ${path_v}min5300-noChlorMitoUnassigned/exported
+
+# Make copy of taxonomy table first, save copy as biom-taxonomy.tsv, before modifying header name for use with BIOM
+cp ${path_v}min5300-noChlorMitoUnassigned/exported/taxonomy.tsv ${path_v}min5300-noChlorMitoUnassigned/biom-taxonomy.tsv
+
+# Change biom-taxonomy.tsv headers to “#OTUID  taxonomy    confidence” with nano biom-taxonomy.tsv
+
+# Add taxonomy to feature-table.biom (make table-with-taxonomy.biom) 
+biom add-metadata -i ${path_v}min5300-noChlorMitoUnassigned/exported/feature-table.biom -o ${path_v}min5300-noChlorMitoUnassigned/table-with-taxonomy.biom --observation-metadata-fp ${path_v}min5300-noChlorMitoUnassigned/biom-taxonomy.tsv --sc-separated taxonomy
+
+# Convert table-with-taxonomy.biom to txt (make a readable ASV table)
+biom convert -i ${path_v}min5300-noChlorMitoUnassigned/table-with-taxonomy.biom -o ${path_v}min5300-noChlorMitoUnassigned/table-with-taxonomy.txt --to-tsv --header-key taxonomy
