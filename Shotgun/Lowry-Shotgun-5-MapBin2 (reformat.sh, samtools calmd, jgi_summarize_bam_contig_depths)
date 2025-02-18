@@ -1,0 +1,128 @@
+# Mapping and binning protocol for 12 metagenomic samples, Part 2 - reformat.sh, calmd, jgi
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable. 64 recommended for mapping.
+t=64
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** MAPPING AND BINNING ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+# Set path to sample assembly directory as a variable.
+path_S_assembled=${path_S}assembled/
+
+echo " The sample assemblies are stored in ${path_S_assembled} "
+
+# Set de-interleaved rqcfilter2 Read 1 and Read 2 files as variables.
+deint_R1=${path_S_trim}S${S}_R1_deint.anqdpt.fastq.gz
+deint_R2=${path_S_trim}S${S}_R2_deint.anqdpt.fastq.gz
+
+# Set path to mapping output directory as a variable
+path_S_map=${path_S}mapped/
+
+##########################################################################################
+################### SLURM singularity file path for code below: ##########################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-map-bin.2022-03-14.sif
+##########################################################################################
+
+# Make directory to store sorted mapping files with trimmed contig information.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trunc/
+
+# Set path to truncated sorted mapping file directory as a variable
+path_S_trunc=${path_S}trunc/
+
+# For loop to trim contig information from sorted mapping files. reads variable represents reads
+#from Samples 1-12 that were mapped against sample.
+for reads in 1 2 3 4 5 6 7 8 #9 10 11 12 # if needed, change for each sample as needed or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Trim contig information for Sample ${reads} Reads vs. Sample ${S} Contigs Sorted Bam File with reformat.sh ********** "
+
+reformat.sh in=${path}S${reads}/mapped/S${reads}.trimmed_vs_S${S}.contigs.sorted.bam \
+        out=${path_S_trunc}S${reads}.trimmed_vs_S${S}.contigs.sorted.trunc.bam \
+        trimrname=t 2> /dev/null
+
+done
+
+#####################################
+# RUN CALMD ON SORTED, MAPPED READS #
+#####################################
+
+# Make directory to store sample calmd output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/calmd/
+
+# Set path to calmd output directory as a variable
+path_S_calmd=${path_S}calmd/
+
+# For loop to run calmd on sorted bam files. reads variable represents reads from Samples 1-12 that were mapped against sample.
+for reads in 1 2 3 4 5 6 7 8 #9 10 11 12 # if needed, change for each sample as needed or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Generate MD tags for Sample ${reads} Reads vs. Sample ${S} Contigs Sorted Bam File with samtools calmd ********** "
+
+samtools calmd --threads ${t} -b \
+        ${path_S_trunc}S${reads}.trimmed_vs_S${S}.contigs.sorted.trunc.bam \
+        ${path}S${S}/assembled/final.contigs.fa \
+        > ${path_S_calmd}S${reads}.trimmed_vs_S${S}.contigs.sorted.trunc.calmd.bam
+
+done
+
+######################
+# CALCULATE COVERAGE #
+######################
+
+# Make directory to store sample jgi_summarize_bam_contig_depths output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/jgi/
+
+# Set path to jgi_summarize_bam_contig_depths output directory as a variable
+path_S_jgi=${path_S}jgi/
+
+# Print runMetaBat.sh help message to print version.
+runMetaBat.sh -h
+
+# Print metabat2 help message to print version.
+metabat2 -h
+
+# For loop to run jgi_summarize_bam_contig_depths on sorted calmd bam files. reads variable represents reads from Samples 1-12 that were mapped against sample.
+for reads in 1 2 3 4 5 6 7 8 #9 10 11 12 # if needed, change for each sample as needed or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Calculate Sample ${reads} Reads vs. Sample ${S} Contig Sorted/calmd Bam File Coverage with jgi_summarize_bam_contig_depths ********** "
+
+jgi_summarize_bam_contig_depths --outputDepth \
+        ${path_S_jgi}S${reads}.trimmed_vs_S${S}.contigs.sorted.trunc.covstats.txt \
+        --referenceFasta ${path}S${S}/assembled/final.contigs.fa \
+        ${path_S_calmd}S${reads}.trimmed_vs_S${S}.contigs.sorted.trunc.calmd.bam
+
+done
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
