@@ -1,0 +1,88 @@
+# Trimming protocol for 12 metagenomic samples
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable.
+t=32
+
+# Set sample number as a variable (1-12). Can modify this number and submit multiple jobs
+# to process multiple samples simultaneously on different slurm nodes.
+S=1
+
+echo " ********** SAMPLE ${S} ********** "
+
+echo " ********** TRIMMING ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Make a directory to store a sample's output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/
+
+echo " The sample data is stored in ${path_S} "
+
+# Make a subdirectory to store trimming files in a sample's output file directory.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+# Set path to a sample's trimming directory as a variable.
+path_S_trim=/storage/biology/projects/miller-lowry/2022_metagenomics/S${S}/trimming/
+
+echo " The sample trimmed files are stored in ${path_S_trim} "
+
+###################################################################################
+################### SLURM singularity file path for code below: ###################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-assembly.sif
+###################################################################################
+
+################
+# INTERLEAVING #
+################
+
+echo " ********** Interleaving Sample ${S} Read 1 and Read 2 files for trimming with rqcfiler2.sh ********** "
+
+# Set paths to raw, pre-trimmed sample Read 1 and Read 2 files.
+pre_R1=${path}${S}_S${S}_L001_R1_001.fastq.gz
+pre_R2=${path}${S}_S${S}_L001_R2_001.fastq.gz
+
+# Interleave raw, pre-trimmed sample Read 1 and Read 2 files for trimming with rqcfilter2.sh.
+reformat.sh in1=${pre_R1} in2=${pre_R2} out=${path_S}S${S}_interleaved.fastq.gz
+
+# Set Read 1 and Read 2 interleaved file as a variable.
+interleaved=${path_S}S${S}_interleaved.fastq.gz
+
+############
+# TRIMMING #
+############
+
+echo " ********** Trimming Sample ${S} with rqcfiler2.sh ********** "
+
+# Print rqcfilter2.sh version.
+rqcfilter2.sh -v
+
+# Trim interleaved Read 1 and Read 2 file with rqcfilter2.sh.
+rqcfilter2.sh -Xmx30g in=${interleaved} \
+        rqcfilterdata=/storage/biology/projects/miller-lowry/rqcfilter2-db/refdata/RQCFilterData \
+        path=${path_S_trim}rqcfilter2_out rna=f \
+        trimfragadapter=t qtrim=rl trimq=0 \
+        maxns=3 maq=3 minlen=51 mlf=0.33 phix=t \
+        removehuman=f removedog=f removecat=f removemouse=f khist=f removemicrobes=f \
+        clumpify=t dedupe=t opticaldupes=t ddist=12000 \
+        tmpdir= barcodefilter=f trimpolyg=5 usejni=f \
+        threads=${t}
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
