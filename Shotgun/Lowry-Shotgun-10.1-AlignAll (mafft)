@@ -1,0 +1,62 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (alignment)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+###############################
+# ALIGN GOFF AND HUG PROTEINS #
+###############################
+
+echo " ********** Align Goff and Hug SDIMO hits with mafft ********** "
+
+# Print mafft help message to print version.
+mafft -h
+
+# For loop to align Goff and Hug proteins with sample proteins. sample variable represents sample
+# proteins, set for 1-12 to represent all 12 sample proteins.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been blasted or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+# Set path to blastp output directory created in for loop as a variable
+path_S_blastp=/home/romejess/may2022_metagenomics/S${sample}/blastp/
+
+# Set path to a sample's prodigal output directory in for loop as a variable
+path_S_prodigal=/home/romejess/may2022_metagenomics/S${sample}/prodigal/
+
+# Set path to blastp output directory created in for loop as a variable
+path_S_filter=/home/romejess/may2022_metagenomics/S${sample}/filter/
+
+# Make directory for alignment output files
+mkdir /home/romejess/may2022_metagenomics/S${sample}/align/
+
+# Set alignment and tree directory as a variable.
+path_S_align=/home/romejess/may2022_metagenomics/S${sample}/align/
+
+echo " ********** Align Goff and Hug SDIMO hits in Sample ${sample} ********** "
+
+# Align query proteins and ALL filtered blastp hits.
+mafft ${path_S_filter}Goff_Hug_and_S${sample}.faa > ${path_S_align}Goff_Hug_and_S${sample}_aligned.faa
+
+done
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
