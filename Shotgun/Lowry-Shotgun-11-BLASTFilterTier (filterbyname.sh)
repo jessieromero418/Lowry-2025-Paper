@@ -1,0 +1,85 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (filtering - tier level)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+########################################################
+# FILTER TIER GOFF AND HUG PROTEINS HITS - ALL SAMPLES #
+########################################################
+
+# NOT PERFORMED ON COMMAND LINE: First filter out blastp hits from S1_blastp_output.txt file based on percent identity, alignment length,
+# and percent query coverage in excel (e.g., minimum 90% identity, minimum 125 amino acid alignment length, minimum query coverage 60%. 
+# Save as a new file (S1_blastp_output-P90-L125-Q60.tsv) and upload to server.
+
+# Set percent identity cutoff as a variable
+P=90
+
+# Set alignment length cutoff as a variable
+L=125
+
+# Set percent query coverage as a variable
+Q=60
+
+echo " ********** Filter out Goff and Hug SDIMO hits (>${P}% identity, >${L} alignment length, >${Q}% query coverage) ********** "
+
+# Set blastp filter parameters as a variable for file naming
+TIER=P90-L125-Q60
+
+# For loop to filter out tier-level Goff and Hug SDIMO blastp hits from prodigal proteins.faa file into a new file. 
+# sample variable represents sample proteins, set for 1-12 to represent all 12 sample proteins.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been blasted or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+#echo " ********** Filter out Goff and Hug SDIMO hits in Sample ${sample} ********** "
+
+# Set path to blastp output directory created in for loop as a variable
+path_S_blastp=/home/romejess/may2022_metagenomics/S${sample}/blastp/
+
+# Set path to a sample's prodigal output directory in for loop as a variable
+path_S_prodigal=/home/romejess/may2022_metagenomics/S${sample}/prodigal/
+
+# Set path to blastp output directory created in for loop as a variable
+path_S_filter=/home/romejess/may2022_metagenomics/S${sample}/filter/
+
+# Extract blastp hit names and place them into a new txt file
+grep -o -e 'k[0-9]\+_[0-9]\+_[0-9]\+' ${path_S_blastp}S${sample}_blastp_output-${TIER}.tsv > ${path_S_blastp}S${sample}_blastp_hits-${TIER}.txt
+
+# Filter out blastp hit names from the proteins.faa database file
+# and place them into a new file
+filterbyname.sh in=${path_S_prodigal}S${sample}_proteins.faa \
+       out=${path_S_filter}S${sample}_filtered_hits-${TIER}.faa \
+       names=${path_S_blastp}S${sample}_blastp_hits-${TIER}.txt include=t ignorejunk=t
+
+echo " ********** Add sample names to hits ********** "
+
+# If analyzing all samples, add sample names to hits
+sed -i "s/>k127/>S${sample}_k127/g" "${path_S_filter}S${sample}_filtered_hits-${TIER}.faa"
+
+echo " ********** Add query sequences and sample sequences to a new file ********** "
+
+# Join query proteins and filtered blastp hits and place them into a new file
+cat ${path}query_Goff_Hug.faa ${path_S_filter}S${sample}_filtered_hits-${TIER}.faa > ${path_S_filter}Goff_Hug_and_S${sample}-${TIER}.faa
+
+done
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
