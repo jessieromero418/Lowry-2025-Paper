@@ -1,0 +1,85 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (alignment - tier level)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+######################################################################
+# ALIGN GOFF AND HUG PROTEINS - ALIGN TIER SDIMOs WITHIN EACH SAMPLE #
+######################################################################
+
+# Set percent identity cutoff as a variable
+P=90
+
+# Set alignment length cutoff as a variable
+L=125
+
+# Set percent query coverage as a variable
+Q=60
+
+# Set blastp filter parameters as a variable for file naming
+TIER=P90-L125-Q60
+
+# For loop to align Goff and Hug proteins with sample proteins. sample variable represents sample
+# proteins, set for 1-12 to represent all 12 sample proteins.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been blasted or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Align tier Goff and Hug SDIMO hits in Sample ${sample} (>${P}% identity, >${L} alignment length, >${Q}% query coverage) ********** "
+
+# Set path to filter directory created in for loop as a variable
+path_S_filter=/home/romejess/may2022_metagenomics/S${sample}/filter/
+
+# Set path to alignment directory created in for loop as a variable
+path_S_align=/home/romejess/may2022_metagenomics/S${sample}/align/
+
+# Align query proteins and sample filtered blastp hits with percent identity, alignment length, and query coverage parameters.
+mafft ${path_S_filter}Goff_Hug_and_S${sample}-${TIER}.faa > ${path_S_align}Goff_Hug_and_S${sample}-${TIER}_aligned.faa
+
+done
+
+#######################################################################################################
+# ALIGN GOFF AND HUG PROTEINS - COMBINE ALL TIER SDIMOs FROM ALL SAMPLES INTO ONE DIRECTORY AND ALIGN #
+#######################################################################################################
+
+echo " ********** Align tier Goff and Hug SDIMO hits in ALL Samples (>${P}% identity, >${L} alignment length, >${Q}% query coverage) ********** "
+
+# Make directory for best hits files
+mkdir /home/romejess/may2022_metagenomics/ALL-${TIER}/
+
+cat /home/romejess/may2022_metagenomics/S*/filter/S*_filtered_hits-${TIER}.faa >> /home/romejess/may2022_metagenomics/ALL-${TIER}/ALL-${TIER}.faa
+
+echo " ********** Check number of lines in ALL-${TIER}.faa ********** "
+grep ">" /home/romejess/may2022_metagenomics/ALL-${TIER}/ALL-${TIER}.faa | wc -l
+
+cat ${path}query_Goff_Hug.faa /home/romejess/may2022_metagenomics/ALL-${TIER}/ALL-${TIER}.faa > /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER}.faa
+
+echo " ********** Check number of lines in Goff_Hug_and_ALL-${TIER}.faa ********** "
+grep ">" /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER}.faa | wc -l
+
+# Make directory for best hits alignment files
+mkdir /home/romejess/may2022_metagenomics/ALL-${TIER}/align/
+
+# Align query proteins and all filtered blastp hits with percent identity, alignment length, and query coverage parameters.
+mafft /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER}.faa > /home/romejess/may2022_metagenomics/ALL-${TIER}/align/Goff_Hug_and_ALL-${TIER}_aligned.faa
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
