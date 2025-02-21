@@ -1,0 +1,50 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (trees, tier-level)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 genes-tree.sh
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+#########################################
+# PHYLOGENETIC TREE - TIER, ALL SAMPLES #
+#########################################
+
+# Set percent identity cutoff as a variable
+P=90
+
+# Set alignment length cutoff as a variable
+L=125
+
+# Set percent query coverage as a variable
+Q=60
+
+# Set blastp filter parameters as a variable for file naming
+TIER=P90-L125-Q60
+
+echo " ********** Build a phylogenetic tree with Goff and Hug SDIMOs and ALL hits with FastTree (>${P}% identity, >${L} alignment length, >${Q}% query coverage) ********** "
+
+# Make directory for best hits tree output files
+mkdir /home/romejess/may2022_metagenomics/ALL-${TIER}/trees/
+
+# Build a phylogenetic tree with ALL aligned protein sequences
+FastTree /home/romejess/may2022_metagenomics/ALL-${TIER}/align/Goff_Hug_and_ALL-${TIER}_aligned.faa > /home/romejess/may2022_metagenomics/ALL-${TIER}/trees/FT_GF_ALL-${TIER}_tree.newick
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
