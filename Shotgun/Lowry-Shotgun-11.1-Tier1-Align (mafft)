@@ -78,7 +78,7 @@ grep ">" /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER
 mkdir /home/romejess/may2022_metagenomics/ALL-${TIER}/align/
 
 # Align query proteins and all filtered blastp hits with percent identity, alignment length, and query coverage parameters.
-mafft /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER}.faa > /home/romejess/may2022_metagenomics/ALL-${TIER}/align/Goff_Hug_and_ALL-${TIER}_aligned.faa
+mafft --op 1.53 --ep 0.123 /home/romejess/may2022_metagenomics/ALL-${TIER}/Goff_Hug_and_ALL-${TIER}.faa > /home/romejess/may2022_metagenomics/ALL-${TIER}/align/Goff_Hug_and_ALL-${TIER}_op1.53_ep0.123_aligned.faa
 
 # Print end time.
 d=$(date +'%m/%d/%Y %H:%M')
