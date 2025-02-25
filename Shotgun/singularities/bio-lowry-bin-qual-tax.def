@@ -1,0 +1,82 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+# to build
+# export SINGULARITY_BIND=
+# singularity build bio-lowry-map-bin.sif bio-lowry-map-bin.def
+
+%environment
+    export PATH=/usr/local/miniconda3/bin:/usr/local/htslib/bin:$PATH
+    export GTDBTK_DATA_PATH="/storage/biology/projects/miller-lowry/gtdbtk-db/release207_v2/"
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get dist-upgrade -y
+    echo "Installing development packages..."
+    apt-get install -y wget vim file gfortran git build-essential \
+        autoconf automake libtool flex bison gdb cmake apt-file  apt-utils zlib1g-dev libbz2-dev liblzma-dev
+    echo 'Installed:'
+    ls /usr/bin
+
+    # add pigz and java
+    echo '************************ pigz, java ************************'
+    apt-get install -y pigz
+    apt-get install -y default-jre
+    java -version
+
+    echo '************************ conda ************************'
+    cd
+    echo Conda https://docs.conda.io/en/latest/miniconda.html#installing
+    wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh
+    # https://stackoverflow.com/questions/55168018/how-to-activate-an-anaconda-environment-in-a-singularity-recipe
+    # export CONDA_INSTALL_PATH="/usr/local/miniconda3"
+    bash Miniconda3-py39_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda3
+    rm Miniconda3-py39_4.12.0-Linux-x86_64.sh
+    export PATH="/usr/local/miniconda3/bin:$PATH"
+    echo $PATH
+    which conda
+    conda update -n base -c defaults conda
+    #conda init
+    #cat .bashrc
+    #. ./.bashrc
+    conda config --add channels defaults
+    conda config --add channels bioconda
+    conda config --add channels conda-forge
+    conda config --set channel_priority strict
+
+    # install htslib (JR, 03.07.23)
+    echo '************************ htslib ************************'
+    # http://www.htslib.org/download/
+    wget https://github.com/samtools/htslib/releases/download/1.17/htslib-1.17.tar.bz2
+    tar -vxjf htslib-1.17.tar.bz2
+    cd htslib-1.17
+        ./configure --prefix=/usr/local
+    make -j 24
+    make install
+
+    echo '************************ checkm ************************'
+    cd /tmp
+    echo checkm https://github.com/Ecogenomics/CheckM
+    echo https://github.com/Ecogenomics/CheckM/wiki/Installation
+    conda create -n checkm python=3.9 numpy matplotlib pysam hmmer prodigal pplacer checkm-genome
+
+    echo '************************ gtdbtk ************************'
+    echo gtdbtk https://github.com/Ecogenomics/GTDBTk
+    echo https://ecogenomics.github.io/GTDBTk/installing/index.html
+    # Reference data downloaded separately on alderaan
+    echo $GTDBTK_DATA_PATH
+    #conda create -n gtdbtk -c conda-forge -c bioconda gtdbtk
+    conda create -n gtdbtk-2.1.1 -c conda-forge -c bioconda gtdbtk=2.1.1
+    conda install -c conda-forge numpy=1.23.1 --name gtdbtk-2.1.1
+    
+%labels
+    Author jan.mandel@ucdenver.edu
+    June 25 2022
+    Modified by chris.miller@ucdenver.edu
+    July 7 2022
+    Modified by jessica.romero@ucdenver.edu
+    July 12 2022
+
+%help
+    Ubuntu 20.04 with Development Tools and biology packages pigz java conda bbmap samtools metabat2 checkm gtdbtk
