@@ -1,0 +1,111 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+# to build
+# export SINGULARITY_BIND=
+# singularity build bio-lowry-assembly.sif bio-lowry-assembly.def
+
+%environment
+    export PATH=/usr/local/bbmap:/usr/local/MEGAHIT-1.2.9-Linux-x86_64-static/bin:/usr/local/miniconda3/bin:$PATH
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get dist-upgrade -y
+    echo "Installing development packages..."
+    apt-get install -y wget vim file gfortran git build-essential \
+        autoconf automake libtool flex bison gdb cmake apt-file  apt-utils
+    echo 'Installed:'
+    ls /usr/bin
+
+    # add pigz and java
+    echo '************************ pigz, java ************************'
+    apt-get install -y pigz
+    apt-get install -y default-jre
+    java -version
+
+    echo '************************ conda ************************'
+    cd
+    echo Conda https://docs.conda.io/en/latest/miniconda.html#installing
+    wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-Linux-x86_64.sh
+    # https://stackoverflow.com/questions/55168018/how-to-activate-an-anaconda-environment-in-a-singularity-recipe
+    # export CONDA_INSTALL_PATH="/usr/local/miniconda3"
+    bash Miniconda3-py39_4.12.0-Linux-x86_64.sh -b -p /usr/local/miniconda3
+    rm Miniconda3-py39_4.12.0-Linux-x86_64.sh
+    export PATH="/usr/local/miniconda3/bin:$PATH"
+    echo $PATH
+    which conda
+    conda update -n base -c defaults conda
+    pip install --upgrade pip
+    #conda init
+    #cat .bashrc
+    #. ./.bashrc
+    conda config --add channels defaults
+    conda config --add channels bioconda
+    conda config --add channels conda-forge
+    conda config --set channel_priority strict
+
+    echo '************************ cutadapt ************************'
+    cd /tmp
+    echo cutadapt https://cutadapt.readthedocs.io/en/stable/installation.html
+    conda create -n cutadaptenv cutadapt
+
+    # install fastqp (JR, 07.12.22)
+    echo '************************ fastqp ************************'
+    pip install fastqp
+
+    echo '************************ megahit ************************'
+    echo megahit https://github.com/voutcn/megahit
+    echo https://github.com/voutcn/megahit/blob/master/README.md
+    conda create -n megahit -c bioconda megahit -y
+    cd /usr/local
+    wget https://github.com/voutcn/megahit/releases/download/v1.2.9/MEGAHIT-1.2.9-Linux-x86_64-static.tar.gz
+    tar zvxf  MEGAHIT-1.2.9-Linux-x86_64-static.tar.gz
+    rm MEGAHIT-1.2.9-Linux-x86_64-static.tar.gz
+
+    # install assembly_stats (JR, 07.14.22)
+    echo '************************ assembly_stats ************************'
+    pip install assembly_stats
+
+    # install quast (JR, 07.18.22)
+    echo '************************ quast ************************'
+    echo http://quast.sourceforge.net/install.html
+    #conda create -n quast -c bioconda quast
+    cd /usr/local
+    echo http://quast.sourceforge.net/docs/manual.html#sec1
+    apt-get install zlib1g-dev
+    apt-get install -y pkg-config libfreetype6-dev libpng-dev
+    # https://www.tutorialspoint.com/how-to-install-matplotlib-in-python
+    pip install matplotlib
+    wget https://github.com/ablab/quast/releases/download/quast_5.2.0/quast-5.2.0.tar.gz
+    tar -xzf quast-5.2.0.tar.gz
+    cd quast-5.2.0
+    ./setup.py install_full
+
+    echo '************************ bbmap ************************'
+    mkdir -p /usr/local
+    cd /usr/local; ls -l
+    echo bbmap https://sourceforge.net/projects/bbmap/
+    wget https://versaweb.dl.sourceforge.net/project/bbmap/BBMap_38.96.tar.gz
+    tar xvfz BBMap_38.96.tar.gz
+    rm BBMap_38.96.tar.gz
+
+    # install fastqc (JR, 09.02.22)
+    echo '************************ fastqc ************************'
+    conda create -n fastqc -c bioconda fastqc
+
+    # install multiqc (JR, 09.02.22)
+    echo '************************ multiqc ************************'
+    # https://multiqc.info/docs/#installing-multiqc
+    pip install multiqc
+
+%labels
+    Author jan.mandel@ucdenver.edu
+    June 25 2022
+    Modified by chris.miller@ucdenver.edu
+    July 7 2022
+    Modified by jessica.romero@ucdenver.edu
+    July 12 2022
+
+%help
+    Ubuntu 20.04 with Development Tools and biology packages pigz java conda cutadapt fastqp megahit assembly_stats quast
