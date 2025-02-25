@@ -1,0 +1,73 @@
+# Gene abundances protocol for 12 metagenomic samples - CoverM
+
+# Performed on the alderaan math cluster
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Activate conda for slurm workload manager.
+conda init
+. ~/.bashrc     # source ~/.bashrc resulted in an error
+
+# Set number of cores/threads (ntasks in .slurm) as a variable. 64 recommended for mapping.
+t=16
+
+echo " ********** GENE ABUNDANCES ********** "
+
+# Set path to metagenomics data as a variable (Lowry project alderaan directory).
+path=/storage/biology/projects/miller-lowry/2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+##########################################################################################
+################### SLURM singularity file path for code below: ##########################
+#/storage/biology/projects/miller-lowry/lowry_singularity/bio-lowry-genes-tree.sif
+##########################################################################################
+
+###################
+# GENE ABUNDANCES #
+###################
+
+# For loop to calculate gene (contig) abundances. sample variable represents sample.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change based on abundances already calculated or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+echo " ********** Calculate Gene (Contig) Abundances with CoverM for Sample ${sample} ********** "
+
+# Set path to a sample's output file directory as a variable.
+path_S=/storage/biology/projects/miller-lowry/2022_metagenomics/S${sample}/
+
+# Set path to calmd output directory as a variable
+path_S_calmd=${path_S}calmd/
+
+# Make a directory to store sample coverm output files.
+mkdir /storage/biology/projects/miller-lowry/2022_metagenomics/S${sample}/coverm/
+
+# Set path to binning output directory as a variable
+path_S_coverm=${path_S}coverm/
+
+# Activate coverm
+conda activate coverm
+
+# Print coverm version
+coverm -V
+
+# Calculate gene abundances with coverm.
+coverm contig --methods rpkm \
+        --bam-files ${path_S_calmd}S${sample}.trimmed_vs_S${sample}.contigs.sorted.trunc.calmd.bam \
+        --output-file ${path_S_coverm}S${sample}.trimmed_vs_S${sample}.contigs.sorted.trunc.calmd.rpkm.txt -t ${t}
+
+echo " ********** Add Sample Names to Contigs for Sample ${sample} ********** "
+
+# Add sample names to contigs
+sed -i "s/k127/S${sample}_k127/g" "${path_S_coverm}S${sample}.trimmed_vs_S${sample}.contigs.sorted.trunc.calmd.tpm.txt"
+
+done
+
+# Deactivate coverm
+conda deactivate
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
