@@ -1,0 +1,82 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (get SDIMOs from non-redundant Tier 2 contigs, make protein alignment and tree)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to Tier 2 SDIMOs directory as a variable
+T2_SDIMOs=/home/romejess/may2022_metagenomics/ALL-P50-90-L125-Q60/
+
+# Set path to Tier 1 contigs directory as a variable
+T2_contigs=/home/romejess/may2022_metagenomics/Tier_2_contigs_analyses
+
+# Set path to non-redundant Tier 2 contigs directory as a variable
+T2_nr_contigs=/home/romejess/may2022_metagenomics/Tier_2_contigs_analyses/Tier_2_contigs_cdhitest_c0.999_as0.999-noTier1
+
+######################################
+# LIST OF NON-REDUNDANT TIER 2 CONTIGS #
+######################################
+
+# To filter SDIMOs from non-redundant Tier 2 contigs, need to make and edit a list of the non-redundant Tier 2 contigs.
+
+# Extract lines with contig names from Tier_2_contigs-c0.999-aS0.999-noTier1.fasta, put into new file (Tier_2_contigs-c0.999-aS0.999-noTier1_headers.txt)
+sed -rn '/k127/p' ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1.fasta > ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_headers.txt
+
+# Extract first field in headers file and place into a new file (Tier_2_contigs-c0.999-aS0.999-noTier1_contigs.txt) to get contig names only
+cut -d " " -f 1 ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_headers.txt > ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs.txt
+
+# Add “_” after contig names and save in a new file (Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_EDIT.txt) for filterbyname.sh
+sed 's/$/_/' ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs.txt > ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_EDIT.txt 
+
+# Remove “>” at the start of lines/contig names 
+sed -i "s/>S/S/g" "${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_headers.txt" 
+sed -i "s/>S/S/g" "${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs.txt" 
+sed -i "s/>S/S/g" "${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_EDIT.txt"
+
+################################################################
+# FILTER SDIMOS FROM NON-REDUNDANT TIER 2 CONTIGS (PROTEIN SPACE) #
+################################################################
+
+# Filter out SDIMO protein sequences from non-redundant Tier 2 contigs
+
+# The "names" file (Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_EDIT.txt) is the list of non-redundant Tier 2 contigs after removing Tier 1 contigs (edited with sed to add a "_" after contig names to prevent filtering contigs with similar names).
+# Add app=t to append results from other samples, substring=t to include SDIMOs associated with each contig.
+
+filterbyname.sh in=${T2_SDIMOs}ALL-P50-90-L125-Q60.faa out=${T2_SDIMOs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa names=${T2_SDIMOs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_EDIT.txt include=t ignorejunk=t ow=f app=t substring=t
+
+#########################################################################
+# NON-REDUNDANT TIER 2 CONTIGS SDIMOS - ALIGNMENT AND TREE (PROTEIN SPACE) #
+#########################################################################
+
+cat ${path}query_Goff_Hug.faa ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa > ${T2_nr_contigs}Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa
+
+# Check number of sequences in Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa
+grep ">" ${T2_nr_contigs}Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa | wc -l  
+
+# Align query proteins and all filtered blastp hits
+mafft --op 1.53 --ep 0.123 ${T2_nr_contigs}Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs.faa > ${T2_nr_contigs}V2-Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs_aligned_realigned_ACM.fasta
+
+# Build a phylogenetic tree
+FastTree ${T2_nr_contigs}V2-Goff_Hug_and_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs_aligned_realigned_ACM.fasta > ${T2_nr_contigs}FT_V2-GH_Tier_2_contigs-c0.999-aS0.999-noTier1_contigs_SDIMOs_realigned_ACM_tree.newick
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
