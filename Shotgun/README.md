@@ -20,8 +20,12 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 * **Lowry-Shotgun-8-Prodigal (prodigal)** -- Predict protein and gene sequences (prodigal).
 * **Lowry-Shotgun-9-BLAST (blastp)** -- BLAST to search for 39 soluble di-iron monooxygenase (SDIMO) alpha hydroxylase protein query sequences from Goff & Hug (2022) in prodigal-predicted sample protein sequences (blastp).
 * **Lowry-Shotgun-10-CoverM**, singularity: *bio-lowry-genes-tree.sif* -- Estimate gene (contig) abundances (coverm).
+
+#### All SDIMOs
 * **Lowry-Shotgun-11-allSDIMOs-BLASTFilter (filterbyname.sh)** -- Filter out all BLASTp hits (i.e., all SDIMOs) into a new file (filterbyname.sh).
 * **Lowry-Shotgun-11.1-allSDIMOs-Align (mafft)** -- Align all SDIMOs with all SDIMO query sequences (mafft).
+
+#### Tier 1
 * **Lowry-Shotgun-12-Tier1-BLASTFilter (filterbyname.sh)** -- Filter out all Tier 1 SDIMOs (i.e., BLASTp hits with: minimum 90% amino acid identity with a query sequence, minimum 125 amino acid alignment length, minimum 60% query coverage) into a new file (filterbyname.sh).
 * **Lowry-Shotgun-12.1-Tier1-Align (mafft)** -- Align all Tier 1 SDIMOs with all SDIMO query sequences (mafft).
 * **Lowry-Shotgun-12.1.1-Tier1-Tree (FastTree)** -- Build a phylogenetic tree with the alignment of all Tier 1 SDIMOs and all SDIMO query sequences (FastTree).
@@ -29,9 +33,12 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 * **Lowry-Shotgun-13.1-Tier1-NonredundantContigs-SDIMOs (filterbyname.sh, mafft, FastTree)** -- Obtain SDIMO protein and nucleotide sequences from non-redundant Tier 1 contigs (filterbyname.sh), align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
 * **Lowry-Shotgun-13.2-Tier1-NonredundantContigs-SDIMOs-Clustering (CD HIT, CD HIT EST)** -- Cluster SDIMO protein (CD HIT) and nucleotide sequences (CD HIT EST) from non-redundant Tier 1 contigs at various percent identity levels.
 * **Lowry-Shotgun-13.3-Tier1-NonredundantContigs-SDIMOs-ManualClustering (mafft, FastTree)** -- Manual clustering of SDIMO proteins from non-redundant Tier 1 contigs, align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
+
+#### Tier 2
 * **Lowry-Shotgun-14-Tier2-BLASTFilter (filterbyname.sh)** -- Filter out all Tier 2 SDIMOs (i.e., BLASTp hits with: 50-90% amino acid identity with a query sequence, minimum 125 amino acid alignment length, minimum 60% query coverage) into a new file (filterbyname.sh).
 * **Lowry-Shotgun-14.1-Tier2-NonredundantContigs (filterbyname.sh, CD HIT EST)** -- Obtain all Tier 2 contig nucleotide sequences (filterbyname), obtain a non-redundant set of Tier 2 contigs by clustering these (CD HIT EST).
 * **Lowry-Shotgun-14.2-Tier2-NonredundantContigs-SDIMOs (filterbyname.sh, mafft, FastTree)** -- Obtain SDIMO protein and nucleotide sequences from non-redundant Tier 2 contigs (filterbyname.sh), align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
+
 * **Lowry-Shotgun-15-MITEs (MITETracker)** -- Identify candidate miniature inverted-repeat transposable elements (MITEs) in sequences (MITETracker). 
 * **Lowry-Shotgun-16-GFF (prodigal)** -- Generate a GFF file of Tier 1 contigs to upload to KBase for gene annotation (prodigal).
 
