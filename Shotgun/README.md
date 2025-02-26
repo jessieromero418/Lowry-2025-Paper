@@ -29,7 +29,7 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 * **Lowry-Shotgun-12-Tier1-BLASTFilter (filterbyname.sh)** -- Filter out all Tier 1 SDIMOs (i.e., BLASTp hits with: minimum 90% amino acid identity with a query sequence, minimum 125 amino acid alignment length, minimum 60% query coverage) into a new file (filterbyname.sh).
 * **Lowry-Shotgun-12.1-Tier1-Align (mafft)** -- Align all Tier 1 SDIMOs with all SDIMO query sequences (mafft).
 * **Lowry-Shotgun-12.1.1-Tier1-Tree (FastTree)** -- Build a phylogenetic tree with the alignment of all Tier 1 SDIMOs and all SDIMO query sequences (FastTree).
-##### *Tier 1, non-redundant contigs*
+##### Tier 1, non-redundant contigs
 * **Lowry-Shotgun-13-Tier1-NonredundantContigs (filterbyname.sh, CD HIT EST)** -- Obtain all Tier 1 contig nucleotide sequences (filterbyname), obtain a non-redundant set of Tier 1 contigs by clustering these (CD HIT EST).
 * **Lowry-Shotgun-13.1-Tier1-NonredundantContigs-SDIMOs (filterbyname.sh, mafft, FastTree)** -- Obtain SDIMO protein and nucleotide sequences from non-redundant Tier 1 contigs (filterbyname.sh), align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
 * **Lowry-Shotgun-13.2-Tier1-NonredundantContigs-SDIMOs-Clustering (CD HIT, CD HIT EST)** -- Cluster SDIMO protein (CD HIT) and nucleotide sequences (CD HIT EST) from non-redundant Tier 1 contigs at various percent identity levels.
@@ -37,7 +37,7 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 
 #### Tier 2
 * **Lowry-Shotgun-14-Tier2-BLASTFilter (filterbyname.sh)** -- Filter out all Tier 2 SDIMOs (i.e., BLASTp hits with: 50-90% amino acid identity with a query sequence, minimum 125 amino acid alignment length, minimum 60% query coverage) into a new file (filterbyname.sh).
-##### *Tier 2, non-redundant contigs*
+##### Tier 2, non-redundant contigs
 * **Lowry-Shotgun-14.1-Tier2-NonredundantContigs (filterbyname.sh, CD HIT EST)** -- Obtain all Tier 2 contig nucleotide sequences (filterbyname), obtain a non-redundant set of Tier 2 contigs by clustering these (CD HIT EST).
 * **Lowry-Shotgun-14.2-Tier2-NonredundantContigs-SDIMOs (filterbyname.sh, mafft, FastTree)** -- Obtain SDIMO protein and nucleotide sequences from non-redundant Tier 2 contigs (filterbyname.sh), align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
 
