@@ -18,7 +18,7 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 * **Lowry-Shotgun-6-MapBin3 (metabat2, runMetaBat.sh)**, singularity: *bio-lowry-map-bin.2022-03-14.sif* -- Bin mapped reads (metabat2/runMetaBat.sh).
 * **Lowry-Shotgun-7-BinQualityTaxonomy (checkm, gtdbtk)**, singularity: *bio-lowry-bin-qual-tax.sif* -- Assess bin quality (checkm), assign taxonomy to bins (gtdbtk).
 * **Lowry-Shotgun-8-Prodigal (prodigal)** -- Predict protein and gene sequences (prodigal).
-* **Lowry-Shotgun-9-BLAST (blastp)** -- BLAST to search for soluble di-iron monooxygenase (SDIMO) alpha hydroxylase protein query sequences in prodigal-predicted sample protein sequences (blastp).
+* **Lowry-Shotgun-9-BLAST (blastp)** -- BLAST to search for 39 soluble di-iron monooxygenase (SDIMO) alpha hydroxylase protein query sequences from Goff & Hug (2022) in prodigal-predicted sample protein sequences (blastp).
 * **Lowry-Shotgun-10-CoverM**, singularity: *bio-lowry-genes-tree.sif* -- Estimate gene (contig) abundances (coverm).
 * **Lowry-Shotgun-11-allSDIMOs-BLASTFilter (filterbyname.sh)** -- Filter out all BLASTp hits (i.e., all SDIMOs) into a new file (filterbyname.sh).
 * **Lowry-Shotgun-11.1-allSDIMOs-Align (mafft)** -- Align all SDIMOs with all SDIMO query sequences (mafft).
