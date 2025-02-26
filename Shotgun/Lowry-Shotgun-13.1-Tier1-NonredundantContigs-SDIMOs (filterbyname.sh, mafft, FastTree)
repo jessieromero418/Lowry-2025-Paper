@@ -1,0 +1,110 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (get SDIMOs from non-redundant Tier 1 contigs, make protein alignment and tree)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to Tier 1 SDIMOs directory as a variable
+T1_SDIMOs=/home/romejess/may2022_metagenomics/ALL-P90-L125-Q60/
+
+# Set path to Tier 1 contigs directory as a variable
+T1_contigs=/home/romejess/may2022_metagenomics/Tier_1_contigs_analyses
+
+# Set path to non-redundant Tier 1 contigs directory as a variable
+T1_nr_contigs=/home/romejess/may2022_metagenomics/Tier_1_contigs_analyses/Tier_1_contigs_cdhitest_c0.999_as0.999
+
+######################################
+# LIST OF NON-REDUNDANT TIER 1 CONTIGS #
+######################################
+
+# To filter SDIMOs from non-redundant Tier 1 contigs, need to make and edit a list of the non-redundant Tier 1 contigs.
+
+# Extract lines with contig names from Tier_1_contigs_all_samples-c0.999-aS0.999.fasta, put into new file (Tier_1_contigs_all_samples-c0.999-aS0.999_headers.txt)
+sed -rn '/k127/p' ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999.fasta > ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_headers.txt 
+
+# Extract first field in headers file and place into a new file (Tier_1_contigs_all_samples-c0.999-aS0.999_contigs.txt) to get contig names only
+cut -d " " -f 1  ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_headers.txt > ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs.txt  
+
+# Add “_” after contig names and save in a new file (Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt) for filterbyname.sh
+sed 's/$/_/' ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs.txt > ${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt  
+
+# Remove “>” at the start of lines/contig names 
+sed -i "s/>S/S/g" "${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_headers.txt" 
+sed -i "s/>S/S/g" "${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs.txt" 
+sed -i "s/>S/S/g" "${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt" 
+
+################################################################
+# FILTER SDIMOS FROM NON-REDUNDANT TIER 1 CONTIGS (PROTEIN SPACE) #
+################################################################
+
+# Filter out SDIMO protein sequences from non-redundant Tier 1 contigs
+
+# Make a directory for SDIMO protein sequences from non-redundant Tier 1 contigs
+mkdir /home/romejess/may2022_metagenomics/Tier_1_contigs_analyses/Tier_1_contigs_cdhitest_c0.999_as0.999/cdhit_SDIMOs
+
+# The "names" file (Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt) is the list of non-redundant Tier 1 contigs (edited with sed to add a "_" after contig names to prevent filtering contigs with similar names).
+# Add app=t to append results from other samples, substring=t to include SDIMOs associated with each contig.
+
+filterbyname.sh in=${T1_SDIMOs}ALL-P90-L125-Q60.faa out=${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa names=${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt include=t ignorejunk=t ow=f app=t substring=t
+
+###################################################################
+# FILTER SDIMOS FROM NON-REDUNDANT TIER 1 CONTIGS (NUCLEOTIDE SPACE) #
+###################################################################
+
+# To filter out SDIMO nucleotide sequences from non-redundant Tier 1 contigs, need to make a file of Tier 1 SDIMO nucleotide sequences
+
+# For loop to filter out Tier 1 SDIMO nucleotide sequences from all samples into a new file.
+# sample variable represents sample genes, set for 1-12 to represent all 12 samples’ genes.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been filtered or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+
+filterbyname.sh in=/home/romejess/may2022_metagenomics/S${sample}/prodigal/S${sample}_genes.fna out=${T1_SDIMOs}ALL-P90-L125-Q60.fasta names=${T1_SDIMOs}ALL-P90-L125-Q60_hits.txt include=t ignorejunk=t ow=f app=t substring=t
+
+done
+
+# Filter out SDIMO nucleotide sequences from non-redundant Tier 1 contigs
+
+# Make a directory for SDIMO nucleotide sequences from non-redundant Tier 1 contigs
+mkdir /home/romejess/may2022_metagenomics/Tier_1_contigs_analyses/Tier_1_contigs_cdhitest_c0.999_as0.999/cdhitest_SDIMOs
+
+# The "names" file (Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt) is the list of non-redundant Tier 1 contigs (edited with sed to add a "_" after contig names to prevent filtering contigs with similar names).
+# Add app=t to append results from other samples, substring=t to include SDIMOs associated with each contig.
+
+filterbyname.sh in=${T1_SDIMOs}ALL-P90-L125-Q60.fasta out=${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna names=${T1_nr_contigs}Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_EDIT.txt include=t ignorejunk=t ow=f app=t substring=t
+
+#########################################################################
+# NON-REDUNDANT TIER 1 CONTIGS SDIMOS - ALIGNMENT AND TREE (PROTEIN SPACE) #
+#########################################################################
+
+cat ${path}query_Goff_Hug.faa ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa > ${T1_nr_contigs}cdhit_SDIMOs/Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa 
+
+# Check number of sequences in Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa
+grep ">" ${T1_nr_contigs}cdhit_SDIMOs/Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa | wc -l 
+
+# Align query proteins and all filtered blastp hits
+mafft --op 1.53 --ep 0.123 ${T1_nr_contigs}cdhit_SDIMOs/Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa > ${T1_nr_contigs}cdhit_SDIMOs/Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs_op1.53_ep0.123_realign.faa
+
+# Build a phylogenetic tree
+FastTree ${T1_nr_contigs}cdhit_SDIMOs/Goff_Hug_and_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs_op1.53_ep0.123_realign.faa > ${T1_nr_contigs}cdhit_SDIMOs/FT_GH_Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs_op1.53_ep0.123_realign_tree.newick
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
