@@ -4,7 +4,7 @@ Code used to process and analyze shotgun sequencing data from support media coll
 
 ## Description
 
-This repository contains scripts used for shotgun sequencing data analyses. 
+This repository contains scripts and files used for shotgun sequencing data analyses. 
 
 Because certain scripts were run on another server (i.e., the Alderaan cluster), these required singularity files to provide the necessary software programs. Definition files to build singularities are at: Shotgun/singularities
 
@@ -44,6 +44,9 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 #### Additional data processing and analyses
 * **Lowry-Shotgun-15-MITEs (MITETracker)** -- Identify candidate miniature inverted-repeat transposable elements (MITEs) in sequences (MITETracker). 
 * **Lowry-Shotgun-16-GFF (prodigal)** -- Generate a GFF file of Tier 1 contigs to upload to KBase for gene annotation (prodigal).
+
+### Files
+* **query_Goff_Hug.faa** -- The query file of 39 SDIMO protein sequences obtained from Goff & Hug (2022).
 
 ## Authors
 
