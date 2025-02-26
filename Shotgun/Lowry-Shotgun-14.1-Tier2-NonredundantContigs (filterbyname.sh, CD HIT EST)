@@ -1,0 +1,110 @@
+# Contig analysis protocol for 12 metagenomic samples (miller-lab) (cluster Tier 2 contigs into non-redundant set)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** CONTIG ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to Tier 2 SDIMOs directory as a variable
+T2_SDIMOs=/home/romejess/may2022_metagenomics/ALL-P50-90-L125-Q60/
+
+#####################################
+# TIER 2 CONTIGS FILE (NUCLEOTIDE SPACE) #
+#####################################
+
+# To make a non-redundant set of Tier 2 contigs, need to make a file of all Tier 2 contig nucleotide sequences.
+
+# Start making Tier 2 contig nucleotide sequences file by copying Tier 2 sequence headers into a new file (Tier_2_contigs_headers.txt)
+grep ">S" ${T2_SDIMOs}ALL-P50-90-L125-Q60.faa > ${T2_SDIMOs}Tier_2_contigs_headers.txt 
+
+# Make copy of headers file, rename (Tier_2_contigs_names.txt).
+cp ${T2_SDIMOs}Tier_2_contigs_headers.txt ${T2_SDIMOs}Tier_2_contigs_names.txt 
+
+# Edit Tier_2_contigs_names.txt with sed to keep contig strings only.
+sed -i 's/_[^_]*//3g' ${T2_SDIMOs}Tier_2_contigs_names.txt 
+sed -i "s/>S/S/g" "${T2_SDIMOs}Tier_2_contigs_names.txt" 
+
+# Make a directory for Tier 2 contigs analyses
+mkdir /home/romejess/may2022_metagenomics/Tier_2_contigs_analyses
+
+# Set path to Tier 2 contigs directory as a variable
+T2_contigs=/home/romejess/may2022_metagenomics/Tier_2_contigs_analyses
+
+# For loop to filter out Tier 2 contigs from all sample contigs into a new file.
+# sample variable represents sample contigs, set for 1-12 to represent all 12 sample contigs.
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 # if needed, change for each sample based on what has been filtered or set as: 1 2 3 4 5 6 7 8 9 10 11 12
+do
+echo " ********** Filter out Tier 2 Contigs in Sample ${sample} into new file ********** "
+
+filterbyname.sh in=/home/romejess/may2022_metagenomics/S${sample}/assembled/final.contigs.fa out=${T2_contigs}Tier_2_contigs.fasta names=${T2_SDIMOs}Tier_2_contigs_names.txt include=t ignorejunk=t ow=f app=t
+
+# Check that all the Tier 2 contigs from each sample were copied into Tier_2_contigs.fasta (check that values match after running wc). Duplicate contigs representing contigs with multiple potential SDIMOs may be present in Tier_2_contigs_names.txt. Contigs shouldn’t be duplicated in Tier_2_contigs.fasta.
+echo " ********** Check the number of Sample ${sample} contigs in Tier_2_contigs_names.txt ********** "
+grep "S${sample}_" ${T2_SDIMOs}Tier_2_contigs_names.txt | wc 
+
+echo " ********** Check the number of Sample ${sample} in Tier_2_contigs.fasta ********** "
+grep "S${sample}_" ${T2_contigs}Tier_2_contigs.fasta | wc
+
+done
+
+# Save Tier 2 contigs names without duplicates in a new file (Tier_2_contigs_names_no_duplicates.txt)
+sort ${T2_SDIMOs}Tier_2_contigs_names.txt | uniq > ${T2_SDIMOs}Tier_2_contigs_names_no_duplicates.txt
+
+# Look at the number of Tier 2 contigs without duplicates
+grep "_k127" ${T2_SDIMOs}Tier_2_contigs_names_no_duplicates.txt | wc
+
+# Compare number of Tier 2 contigs without duplicates with number of sequences in Tier_2_contigs.fasta (values should match)
+grep "_k127" ${T2_contigs}Tier_2_contigs.fasta | wc
+
+########################################
+# TIER 2 CONTIGS - FILTER OUT TIER 1 CONTIGS  #
+########################################
+
+# Need to filter out contigs with Tier 1 SDIMOs from Tier 2 before clustering into a non-redundant set.
+
+# Filter out Tier 1 contigs from Tier 2 contigs using Tier_1_contigs_names.txt
+filterbyname.sh in=${T2_contigs}Tier_2_contigs.fasta out=${T2_contigs}Tier_2_contigs-noTier1.fasta names=${T1_contigs}Tier_1_contigs_names.txt include=f ignorejunk=t ow=f
+
+#################################################
+# NON-REDUNDANT TIER 2 CONTIGS (NUCLEOTIDE SPACE) #
+#################################################
+
+# Activate CD-HIT.
+conda activate cd-hit
+
+# Print coverm version.
+cd-hit
+
+# Make a directory for non-redundant Tier 1 contigs
+mkdir /home/romejess/may2022_metagenomics/Tier_2_contigs_analyses/Tier_2_contigs_cdhitest_c0.999_as0.999
+
+# Set path to non-redundant Tier 1 contigs directory as a variable
+T2_nr_contigs=/home/romejess/may2022_metagenomics/Tier_2_contigs_analyses/Tier_2_contigs_cdhitest_c0.999_as0.999
+
+echo " ********** CD-HIT-EST -- Remove 99.9% identical contigs, add -aS 0.999 parameter (nucleotide space) ********** "
+
+cd-hit-est -i ${T2_contigs}Tier_2_contigs-noTier1.fasta -o ${T2_nr_contigs}Tier_2_contigs-c0.999-aS0.999-noTier1.fasta -M 0 -c 0.999 -aS 0.999 -T ${t}
+
+# Deactivate CD-HIT.
+conda deactivate
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
