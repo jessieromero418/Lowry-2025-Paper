@@ -1,0 +1,55 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (get representative SDIMOs from non-redundant Tier 1 contigs, make protein alignment and tree)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+#######################################################
+# NON-REDUNDANT TIER 1 CONTIGS SDIMOS (MANUAL CLUSTER) #
+#######################################################
+
+# NOT PERFORMED ON COMMAND LINE: “Manual” clustering.
+# Representative sequences were chosen based on the protein alignment and tree made in Step 13.1 (SDIMOs from non-redundant Tier 1 contigs). 
+# For each clade, the most abundant sequence with no gap in the first di-iron center (i.e., no missing DE*RH motif in the protein alignment) was used as the representative sequence.
+
+# Copy chosen Tier 1 representative protein sequences from /home/romejess/may2022_metagenomics/ALL-P90-L125-Q60/ALL-P90-L125-Q60.faa into a new file (can use “nano” to create new file): ALL-P90-L125-Q60-test-clust-3.faa
+
+# Make a directory for chosen Tier 1 representative protein sequences
+mkdir /home/romejess/may2022_metagenomics/ALL-P90-L125-Q60-test-clust
+
+# Move chosen Tier 1 representative protein sequences to directory
+mv ALL-P90-L125-Q60-test-clust-3.faa /home/romejess/may2022_metagenomics/ALL-P90-L125-Q60-test-clust
+
+####################################
+# ALIGNMENT AND TREE (PROTEIN SPACE) #
+####################################
+
+cat ${path}query_Goff_Hug.faa ${path}ALL-P90-L125-Q60-test-clust-3.faa > ${path}Goff_Hug_and_ALL-P90-L125-Q60-test-clust-3.faa
+
+# Align query proteins and all filtered blastp hits
+mafft --op 1.53 --ep 0.123 ${path}ALL-P90-L125-Q60-test-clust/Goff_Hug_and_ALL-P90-L125-Q60-test-clust-3.faa > ${path}ALL-P90-L125-Q60-test-clust/Goff_Hug_and_ALL-P90-L125-Q60-test-clust-3_op1.53_ep0.123_realign.faa 
+
+# Build a phylogenetic tree
+FastTree ${path}ALL-P90-L125-Q60-test-clust/Goff_Hug_and_ALL-P90-L125-Q60-test-clust-3_op1.53_ep0.123_realign.faa > ${path}ALL-P90-L125-Q60-test-clust/FT_GH_ALL-P90-L125-Q60-test-clust-3_op1.53_ep0.123_realign_tree.newick 
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
