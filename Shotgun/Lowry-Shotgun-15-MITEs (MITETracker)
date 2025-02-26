@@ -1,0 +1,60 @@
+# MITEs analysis protocol (miller-lab) 
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** MITES ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+#################
+# MITES ANALYSIS #
+#################
+
+# Activate conda
+conda activate
+
+# Create conda environment and install transposon annotation tools from: https://github.com/DerKevinRiehl/transposon_annotation_tools 
+conda create -y --name transposon_annotation_tools_env python=2.7 
+
+# Activate conda environment
+conda activate transposon_annotation_tools_env 
+
+# Install mamba
+conda install -y mamba 
+
+# Install MITETracker 
+conda install -y -c derkevinriehl transposon_annotation_tools_mitetracker 
+
+# Look for MITEs (example with a fasta file of the nucleotide sequence for the Dxm-containing Lowry contig S3_k127_1715793)
+
+# Make directory for transposon annotation tools analyses
+mkdir /home/romejess/may2022_metagenomics/transposon_annotation/
+
+# cd into directory
+cd /home/romejess/may2022_metagenomics/transposon_annotation/
+
+# Make directory for MITETracker results
+mkdir /home/romejess/may2022_metagenomics/transposon_annotation/results/
+
+# Run MITETracker on the S3_k127_1715793 contig
+mitetracker -g /home/romejess/may2022_metagenomics/S3_k127_1715793.fasta -j S3_k127_1715793_MITETracker 
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
