@@ -60,6 +60,4 @@ on remediation efforts, sampling assistance, and providing chemistry data from t
 plant.
 * Thanks to Dr. Jan Mandel at the University of Colorado Denver for access to the Alderaan cluster from the Center for Computational Mathematics at the University of Colorado Denver (supported by National Science Foundation award OAC-2019089).
 * Thanks to Dr. Chris Miller at the University of Colorado Denver for access to the miller-lab server at the University of Colorado Denver.
-* 39 SDIMO query sequences obtained from Goff & Hug (2022): Goff, K. L., & Hug, L. A. (2022). Environmental Potential for Microbial 1,4-Dioxane 
-Degradation Is Sparse despite Mobile Elements Playing a Role in Trait Distribution. Applied and 
-Environmental Microbiology, 88(7), e02091-02021. https://doi.org/doi:10.1128/aem.02091-21
+* 39 SDIMO query sequences obtained from Goff & Hug (2022): Goff, K. L., & Hug, L. A. (2022). Environmental Potential for Microbial 1,4-Dioxane Degradation Is Sparse despite Mobile Elements Playing a Role in Trait Distribution. *Applied and Environmental Microbiology, 88*(7), e02091-02021. https://doi.org/doi:10.1128/aem.02091-21
