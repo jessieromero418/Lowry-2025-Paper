@@ -9,7 +9,7 @@ This repository contains scripts used for shotgun sequencing data analyses.
 Because certain scripts were run on another server (i.e., the Alderaan cluster), these required singularity files to provide the necessary software programs. Definition files to build singularities are at: Shotgun/singularities
 
 ### Scripts
-
+#### Processing data and initial analyses
 * **Lowry-Shotgun-1-Trimming (rqcfilter2.sh)**, singularity: *bio-lowry-assembly.sif* -- Interleave raw, pre-trimmed Read 1 and Read 2 files (reformat.sh), trim interleaved reads file (rqcfilter2.sh). 
 * **Lowry-Shotgun-2-TrimmingQuality (fastqc, fastqp, multiqc)**, singularity: *bio-lowry-assembly.sif* -- Assess trimmed reads quality (fastqc, fastqp), aggregate trimmed reads quality information from fastqc for all samples (multiqc).
 * **Lowry-Shotgun-3-Assembly (megahit, quast)**, singularity: *bio-lowry-assembly.sif* -- Deinterleave reads (reformat.sh), assemble reads into contigs (megahit), get assembly statistics (quast).
@@ -39,6 +39,7 @@ Because certain scripts were run on another server (i.e., the Alderaan cluster),
 * **Lowry-Shotgun-14.1-Tier2-NonredundantContigs (filterbyname.sh, CD HIT EST)** -- Obtain all Tier 2 contig nucleotide sequences (filterbyname), obtain a non-redundant set of Tier 2 contigs by clustering these (CD HIT EST).
 * **Lowry-Shotgun-14.2-Tier2-NonredundantContigs-SDIMOs (filterbyname.sh, mafft, FastTree)** -- Obtain SDIMO protein and nucleotide sequences from non-redundant Tier 2 contigs (filterbyname.sh), align those SDIMO proteins with all SDIMO query sequences (mafft), build a phylogenetic tree from this alignment (FastTree).
 
+#### Additional processing and analyses
 * **Lowry-Shotgun-15-MITEs (MITETracker)** -- Identify candidate miniature inverted-repeat transposable elements (MITEs) in sequences (MITETracker). 
 * **Lowry-Shotgun-16-GFF (prodigal)** -- Generate a GFF file of Tier 1 contigs to upload to KBase for gene annotation (prodigal).
 
