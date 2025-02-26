@@ -1,0 +1,13 @@
+# Creating a General Feature Format (GFF) file for KBase analyses 
+
+# Performed on miller-lab
+
+# Create a GFF file from a FASTA file of nucleotide sequences pertaining to all Tier 1 contigs
+prodigal -i /home/chris/Lowry/2022_metagenomics/lowry_plasmids/Tier_1_contigs_all_samples.fasta \
+  -o /home/romejess/may2022_metagenomics/Tier_1_contigs_all_samples.gff -f gff -p meta
+
+# Remove lines starting with '#" in the output GFF file
+sed -i '/^# /d' "/home/romejess/may2022_metagenomics/Tier_1_contigs_all_samples.gff"
+
+# Edit GFF file to make sure that contig and gene names here match those from FASTA file
+cat Tier_1_contigs_all_samples.gff  | sed 's/\(\(S[0-9]\+_k[0-9]\+_[0-9]\+\).*ID\=\)[0-9]\+\(_[0-9]\+\)/\1\2\3/g' > Tier_1_contigs_all_samples.renamedID.gff
