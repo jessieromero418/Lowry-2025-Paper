@@ -1,0 +1,84 @@
+# Gene analysis protocol for 12 metagenomic samples (miller-lab) (cluster SDIMOs from non-redundant Tier 1 contigs in protein and nucleotide space)
+
+# Performed on miller-lab
+
+# To submit to colony: qsub -l h=colony -pe smp 48 [BASH SCRIPT NAME]
+
+# Activate conda in miller-lab.
+source ~/miniconda3/etc/profile.d/conda.sh
+
+# Print start time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "STARTED AT ${d}"
+
+# Set number of cores/threads as a variable
+t=48
+
+echo " ********** GENE ANALYSIS ********** "
+
+# Set path to metagenomics directory as a variable (miller-lab directory).
+path=/home/romejess/may2022_metagenomics/
+
+echo " The metagenomics data is stored in ${path} "
+
+# Set path to Tier 1 SDIMOs directory as a variable
+T1_SDIMOs=/home/romejess/may2022_metagenomics/ALL-P90-L125-Q60/
+
+# Set path to Tier 1 contigs directory as a variable
+T1_contigs=/home/romejess/may2022_metagenomics/Tier_1_contigs_analyses
+
+# Set path to non-redundant Tier 1 contigs directory as a variable
+T1_nr_contigs=/home/romejess/may2022_metagenomics/Tier_1_contigs_analyses/Tier_1_contigs_cdhitest_c0.999_as0.999
+
+#####################################################################
+# CLUSTERING SDIMOS FROM NON-REDUNDANT TIER 1 CONTIGS (PROTEIN SPACE) #
+#####################################################################
+
+echo " ********** 100% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT c=1 -- Cluster Tier 1 SDIMOs (protein space) ********** "
+cd-hit -i ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa -o ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c1.faa -M 2400 -c 1 -T ${t}
+
+echo " ********** 99% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT c=0.99 -- Cluster Tier 1 SDIMOs (protein space) ********** "
+cd-hit -i ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa -o ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.99.faa -M 2400 -c 0.99 -T ${t}
+
+echo " ********** 97% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT c=0.97 -- Cluster Tier 1 SDIMOs (protein space) ********** "
+cd-hit -i ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa -o ${T1_nr_contigs}/cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.97.faa -M 2400 -c 0.97 -T ${t}
+
+echo " ********** 95% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT c=0.95 -- Cluster Tier 1 SDIMOs (protein space) ********** "
+cd-hit -i        ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa -o ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.95.faa -M 2400 -c 0.95 -T ${t}
+
+echo " ********** 90% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT c=0.9 -- Cluster Tier 1 SDIMOs (protein space) ********** "
+cd-hit -i ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.faa -o ${T1_nr_contigs}cdhit_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.9.faa -M 2400 -c 0.9 -T ${t}
+
+########################################################################
+# CLUSTERING SDIMOS FROM NON-REDUNDANT TIER 1 CONTIGS (NUCLEOTIDE SPACE) #
+########################################################################
+
+echo " ********** 100% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT-EST c=1 -- Cluster Tier 1 SDIMOs (nucleotide space) ********** "
+cd-hit-est -i ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna -o ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c1.fna -M 2400 -c 1 -T ${t}
+
+echo " ********** 99% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT-EST c=0.99 -- Cluster Tier 1 SDIMOs (nucleotide space) ********** "
+cd-hit-est -i ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna -o ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.99.fna -M 2400 -c 0.99 -T ${t}
+
+echo " ********** 97% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT-EST c=0.97 -- Cluster Tier 1 SDIMOs (nucleotide space) ********** "
+cd-hit-est -i ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna -o ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.97.fna -M 2400 -c 0.97 -T ${t}
+
+echo " ********** 95% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT-EST c=0.95 -- Cluster Tier 1 SDIMOs (nucleotide space) ********** "
+cd-hit-est -i ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna -o ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.95.fna -M 2400 -c 0.95 -T ${t}
+
+echo " ********** 90% IDENTITY CLUSTERING ********** "
+echo " ********** CD-HIT-EST c=0.9 -- Cluster Tier 1 SDIMOs (nucleotide space) ********** "
+cd-hit-est -i ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs.fna -o ${T1_nr_contigs}cdhitest_SDIMOs/Tier_1_contigs_all_samples-c0.999-aS0.999_contigs_SDIMOs-c0.9.fna -M 2400 -c 0.9 -T ${t}
+
+
+# Print end time.
+d=$(date +'%m/%d/%Y %H:%M')
+echo "ENDED AT ${d}"
