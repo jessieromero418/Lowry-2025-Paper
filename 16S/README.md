@@ -17,7 +17,7 @@ This repository contains scripts and R markdown files and output files from cert
 * **min5300_noChlorMitoUnassigned_fam_FALSE_REL.tsv** -- Relative abundance values down to the family level for the filtered 16S dataset.
 * **min5300_noChlorMitoUnassigned_phy_REL.tsv** -- Relative abundance values down to the phylum level for the filtered 16S dataset.
 * **table-with-taxonomy.biom**  -- ASV table (BIOM format) for the filtered 16S dataset.
-* **table-with-taxonomy.txt** -- ASV table (readable text format) for the filtered 16S dataset.
+* **table-with-taxonomy-relabeled.txt** -- ASV table (readable text format) for the filtered 16S dataset with relabeled ASVs.
 
 ## Authors
 
